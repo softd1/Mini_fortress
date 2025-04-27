@@ -1,10 +1,11 @@
 using UnityEngine;
 
-public class EnemyWayPoint : MonoBehaviour
+public class EnemyMovement : MonoBehaviour
 {
-    public Transform[] waypoints; // 갈 Waypoint 목록
-    private int currentWaypointIndex = 0; // 현재 목표하는 Waypoint 인덱스
-    public float moveSpeed = 2f; // 이동 속도
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public Transform[] waypoints;
+    private int currentWaypointIndex = 0;
+    public float moveSpeed = 2f;
 
     void Update()
     {
