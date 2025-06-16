@@ -1,22 +1,19 @@
 using UnityEngine;
 
-public class DefaultEnemy : MonoBehaviour, IEnemy
+public class DefaultEnemy : MonoBehaviour
 {
     private int _health;
-    private int _damage;
+    [SerializeField]
     private int _maxHealth;
-    public int health
-    {
-        get { return _health; }
-    }
-    public int damage
-    {
-        get { return _damage; }
-    }
-    public int maxHealth
-    {
-        get { return _maxHealth; }
-    }
+    [SerializeField]
+    private int _speed;
+
+
+    private Vector3 targetWayPoint;
+    private EnemyManager manager;
+    private int wayPointIndex;
+
+
 
     public void setHealth(int health)
     {
@@ -27,30 +24,40 @@ public class DefaultEnemy : MonoBehaviour, IEnemy
     {
         return null;
     }
-    public void setWaypoint(EnemyWayPoint waypoint)
-    {
-
-    }
     public float wayPointDistance()
     {
         return 0.0f;
     }
-    public bool arriveAtWaypoint()
-    {
-        return false;
-    }
+
     public void move()
     {
+        transform.position = Vector3.MoveTowards(transform.position, targetWayPoint, _speed * Time.deltaTime);
+    }
+    public void setManager(EnemyManager enemyManager)
+    {
+        // 만들때 호출
+        manager = enemyManager;
+        targetWayPoint = manager.getWayPoints(0);
+    }
 
+    private void arriveAtWaypoint()
+    {
+        wayPointIndex++;
+        targetWayPoint = manager.getWayPoints(wayPointIndex);
     }
 
     void Start()
     {
-        
+
     }
 
     void Update()
     {
-        
+        if (0.5f > Vector3.Distance(transform.position, targetWayPoint))
+        {
+            arriveAtWaypoint();
+        }
+
+        move();
     }
 }
