@@ -20,8 +20,18 @@ public class SaveManager : MonoBehaviour
             data = JsonUtility.FromJson<SaveData>(json);
             return true;
         }
+
         data = null;
+
         return false;
+    }
+
+    public SaveData load()
+    {
+        if (tryLoad(out SaveData data))
+            return data;
+
+        return new SaveData();
     }
 
     public bool isExist()
