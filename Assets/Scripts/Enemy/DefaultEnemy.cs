@@ -4,9 +4,13 @@ public class DefaultEnemy : MonoBehaviour
 {
     private int _health;
     [SerializeField]
-    private int _maxHealth;
+    private int baseHealth;
     [SerializeField]
     private int baseSpeed;
+    [SerializeField]
+    private int baseValue;
+    [SerializeField]
+    private int baseDefense;
 
 
     private Vector3 targetWayPoint;
@@ -19,9 +23,23 @@ public class DefaultEnemy : MonoBehaviour
         effectManager = gameObject.GetComponent<EnemyEffectManager>();
     }
 
-    public void takeDamage(int damage)
+    public void takeDamage(int damage, bool fixedDamage)
     {
-        _health -= damage;
+        int finalDamage = damage;
+
+        if (!fixedDamage)
+        {
+            finalDamage = (int)(effectManager.damageMultiplier * damage);
+            finalDamage = damage < baseDefense ? damage / 2 : damage = -baseDefense;
+        }
+
+
+        _health -= finalDamage;
+    }
+
+    public void applyEffect()
+    {
+
     }
 
     public EnemyWayPoint getWaypoint()
@@ -52,6 +70,11 @@ public class DefaultEnemy : MonoBehaviour
         targetWayPoint = manager.getWayPoints(wayPointIndex);
     }
 
+    private void Remove()
+    {
+        
+    }
+
     void Update()
     {
         if (0.5f > Vector3.Distance(transform.position, targetWayPoint))
@@ -60,5 +83,8 @@ public class DefaultEnemy : MonoBehaviour
         }
 
         move();
+
+        if (_health < 0)
+            Remove();
     }
 }
