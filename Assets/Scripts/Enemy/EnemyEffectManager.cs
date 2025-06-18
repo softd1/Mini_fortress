@@ -132,7 +132,7 @@ public class EnemyEffectManager : MonoBehaviour
 
     public void damageEffect(int damage)
     {
-        var enemy = GetComponent<DefaultEnemy>();
+        var enemy = GetComponent<Enemy>();
         if (enemy != null)
             enemy.takeDamage(damage, fixedDamage: true);
     }

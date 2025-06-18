@@ -85,7 +85,7 @@ public class EnemySpawner : MonoBehaviour
 
             GameObject obj = Instantiate(prefab, spawnPosition, Quaternion.identity);
 
-        DefaultEnemy enemy = obj.GetComponent<DefaultEnemy>();
+        Enemy enemy = obj.GetComponent<Enemy>();
         if (enemy != null)
             enemy.setManager(GetComponent<EnemyManager>());
     }

@@ -48,7 +48,7 @@ public class Bullet : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        var enemy = other.GetComponent<DefaultEnemy>();
+        var enemy = other.GetComponent<Enemy>();
         var effects = other.GetComponent<EnemyEffectManager>();
         if (enemy == null) return;
 

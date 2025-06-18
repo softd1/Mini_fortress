@@ -53,4 +53,13 @@ public class WaveManager : MonoBehaviour
         list.Sort((a, b) => a.time.CompareTo(b.time));
         return list;
     }
+
+    public void InitNewGame()
+    {
+
+    }
+    public void RestoreFromSave(SaveData s)
+    {
+
+    }
 }
