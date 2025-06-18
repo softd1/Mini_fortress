@@ -1,4 +1,3 @@
 time,prefabName,count,space
-0.00,TestEnemy,4,1
-5.00,TestEnemy,1,0
-12.00,TestEnemy,5,2
+0.00,Default,6,2
+8.00,Default,6,1
