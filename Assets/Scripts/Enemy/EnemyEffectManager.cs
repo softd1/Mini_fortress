@@ -1,116 +1,85 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.ShaderGraph;
-
-public enum enemyEffect
-{
-    Frozen,
-    Fire,
-    Shock
-}
 
 public abstract class StatusEffect
 {
     public float duration { get; set; }
-
     public float interval;
-    public float timer = 0.0f;
+    public float timer = 0f;
 
     public int stack { get; protected set; }
     public bool isFinished => duration <= 0f;
-
     public int maxStack = 1;
+
     public virtual float speedMultiplier => 1f;
     public virtual float damageTakenMultiplier => 1f;
-
-
     public virtual bool equalType(StatusEffect other) => GetType() == other.GetType();
 
     public abstract void apply();
-
-    public virtual void addStack()
-    {
-        stack++; 
-    }
-
+    public virtual void addStack() { stack++; }
     public abstract void update(float deltaTime, EnemyEffectManager manager);
     public abstract void end();
-
     public abstract StatusEffect Clone();
 }
+
 public class FrozenEffect : StatusEffect
 {
-    public FrozenEffect(float duration, int stack = 1)
+    private readonly float slowAmount;
+
+    public FrozenEffect(float duration, float slowAmount, int stack = 1)
     {
         this.duration = duration;
+        this.slowAmount = slowAmount;
         this.stack = stack;
-
-        maxStack = 2;
+        this.maxStack = 2;
     }
 
-    public override void apply()
-    {
-
-    }
+    public override void apply() { /* 이펙트 시작 시 필요한 로직 */ }
 
     public override void update(float deltaTime, EnemyEffectManager manager)
     {
         duration -= deltaTime;
-        timer += deltaTime;
     }
 
-    public override void end()
-    {
-
-    }
+    public override void end() { /* 이펙트 종료 시 필요한 로직 */ }
 
     public override StatusEffect Clone()
-    {
-        return new FrozenEffect(duration, stack);
-    }
+        => new FrozenEffect(duration, slowAmount, stack);
 
-    public override float speedMultiplier => 1f - 0.15f * stack;
+    public override float speedMultiplier
+        => 1f - slowAmount * stack;
 }
 
 public class FireEffect : StatusEffect
 {
+    private readonly int damagePerTick;
 
-    public FireEffect(float duration, int stack = 1)
+    public FireEffect(float duration, int damagePerSecond, int stack = 1)
     {
         this.duration = duration;
+        this.damagePerTick = damagePerSecond;
         this.stack = stack;
-
-        maxStack = 4;
-        interval = 0.25f;
+        this.maxStack = 4;
+        this.interval = 1f;  // 1초마다 데미지
     }
 
-    public override void apply()
-    {
+    public override void apply() { /* 이펙트 시작 시 필요한 로직 */ }
 
-    }
     public override void update(float deltaTime, EnemyEffectManager manager)
     {
         duration -= deltaTime;
         timer += deltaTime;
-
         if (timer >= interval)
         {
             timer -= interval;
-
-           manager.damageEffect(stack);
+            manager.damageEffect(damagePerTick);
         }
     }
 
-    public override void end()
-    {
-
-    }
+    public override void end() { /* 이펙트 종료 시 필요한 로직 */ }
 
     public override StatusEffect Clone()
-    {
-        return new FireEffect(duration,stack);
-    }
+        => new FireEffect(duration, damagePerTick, stack);
 }
 
 public class ShockEffect : StatusEffect
@@ -119,29 +88,23 @@ public class ShockEffect : StatusEffect
     {
         this.duration = duration;
         this.stack = stack;
-
-        maxStack = 2;
+        this.maxStack = 2;
     }
-    public override void apply()
-    {
 
-    }
+    public override void apply() { }
+
     public override void update(float deltaTime, EnemyEffectManager manager)
     {
         duration -= deltaTime;
     }
 
-    public override void end()
-    {
-
-    }
-
-    public override float damageTakenMultiplier => 0.5f * stack + 1f;
+    public override void end() { }
 
     public override StatusEffect Clone()
-    {
-        return new ShockEffect(duration, stack);
-    }
+        => new ShockEffect(duration, stack);
+
+    public override float damageTakenMultiplier
+        => 1f + 0.5f * stack;
 }
 
 public class EnemyEffectManager : MonoBehaviour
@@ -150,75 +113,52 @@ public class EnemyEffectManager : MonoBehaviour
     public float speedMultiplier { get; private set; } = 1f;
     public float damageMultiplier { get; private set; } = 1f;
 
-    public void applyEffect (StatusEffect effect)
+    public void applyEffect(StatusEffect effect)
     {
-        foreach (StatusEffect curr in effects)
+        foreach (var curr in effects)
         {
-            if(curr.equalType(effect))
+            if (curr.equalType(effect))
             {
-                if(curr.stack < effect.maxStack)
-                {
+                if (curr.stack < effect.maxStack)
                     curr.addStack();
-                }
                 curr.duration = Mathf.Max(curr.duration, effect.duration);
-
                 return;
             }
         }
-
-        StatusEffect clone = effect.Clone();
+        var clone = effect.Clone();
         clone.apply();
         effects.Add(clone);
     }
 
     public void damageEffect(int damage)
     {
-        DefaultEnemy enemy = GetComponent<DefaultEnemy>();
-
-        enemy.takeDamage(damage, true);
+        var enemy = GetComponent<DefaultEnemy>();
+        if (enemy != null)
+            enemy.takeDamage(damage, fixedDamage: true);
     }
 
-
-
-    public void Update()
+    void Update()
     {
-        // run Timer
-
         float dt = Time.deltaTime;
-
-        float speedMultiple = 1.0f;
-        float damageMultiple = 1.0f;
-
-        for(int i = 0; i < effects.Count; i++)
+        for (int i = effects.Count - 1; i >= 0; i--)
         {
-            StatusEffect effect = effects[i];
-
-            effect.duration -= dt;
-            
-            if(effect.duration <= 0f)
+            var e = effects[i];
+            e.update(dt, this);
+            if (e.isFinished)
             {
-                effect.end();
+                e.end();
                 effects.RemoveAt(i);
-                continue;
             }
-
-            effect.timer -= dt;
-
-            if (effect.interval > 0f)
-            {
-
-                while (effect.timer <= 0f)
-                {
-                    effect.update(dt, GetComponent<EnemyEffectManager>());
-                    effect.timer += effect.interval;
-                }
-            }
-
-            speedMultiple = Mathf.Min(speedMultiple, effect.speedMultiplier);
-            damageMultiple *= effect.damageTakenMultiplier;
         }
 
-        speedMultiplier = speedMultiple;
-        damageMultiplier = damageMultiple;
+        float spdMul = 1f;
+        float dmgMul = 1f;
+        foreach (var e in effects)
+        {
+            spdMul = Mathf.Min(spdMul, e.speedMultiplier);
+            dmgMul *= e.damageTakenMultiplier;
+        }
+        speedMultiplier = spdMul;
+        damageMultiplier = dmgMul;
     }
 }

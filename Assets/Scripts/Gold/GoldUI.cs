@@ -1,14 +1,27 @@
-using TMPro;
 using UnityEngine;
+using TMPro;
+
 public class GoldUI : MonoBehaviour
 {
-    public TextMeshProUGUI goldText;
+    public GoldManager goldManager;
+    public TMP_Text goldText;
 
-    private void Update()
+    void Start()
     {
-        if (GoldManager.Instance != null)
-        {
-            goldText.text = "Gold: " + GoldManager.Instance.CurrentGold.ToString();
-        }
+       
+        goldManager.OnGoldChanged += UpdateGold;
+
+    
+        UpdateGold(goldManager.CurrentGold);
+    }
+
+    void OnDestroy()
+    {
+        goldManager.OnGoldChanged -= UpdateGold;
+    }
+
+    private void UpdateGold(int amount)
+    {
+        goldText.text = $"Gold: {amount}";
     }
 }

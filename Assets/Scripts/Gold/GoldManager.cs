@@ -1,35 +1,41 @@
 using UnityEngine;
+using System;
 
 public class GoldManager : MonoBehaviour
 {
-    public static GoldManager Instance; 
-    public int CurrentGold = 100; 
-    private void Awake()
+
+    public static GoldManager Instance { get; private set; }
+
+    public int CurrentGold { get; private set; }
+
+    public event Action<int> OnGoldChanged;
+
+    void Awake()
     {
-        // ½Ì±ÛÅæ ÃÊ±âÈ­
+
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject);  // ÀÌ¹Ì Á¸ÀçÇÏ¸é »èÁ¦
+            Destroy(gameObject);
+            return;
         }
-        else
-        {
-            Instance = this;  // ÇöÀç ÀÎ½ºÅÏ½º¸¦ ½Ì±ÛÅæÀ¸·Î ¼³Á¤
-        }
-    }
-    
-    public bool SpendGold(int amount)
-    {
-        if (CurrentGold >= amount)
-        {
-            CurrentGold -= amount;
-            return true;
-        }
-        return false;
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        CurrentGold = 100;
+        OnGoldChanged?.Invoke(CurrentGold);
     }
 
-    // °ñµå È¹µæ ¸Þ¼­µå
     public void AddGold(int amount)
     {
         CurrentGold += amount;
+        OnGoldChanged?.Invoke(CurrentGold);
+    }
+
+    public bool SpendGold(int cost)
+    {
+        if (CurrentGold < cost) return false;
+        CurrentGold -= cost;
+        OnGoldChanged?.Invoke(CurrentGold);
+        return true;
     }
 }

@@ -2,62 +2,96 @@ using UnityEngine;
 
 public class TowerAttack : MonoBehaviour
 {
-    public float attackRange = 5f;
-    public float attackRate = 1f;
+    [Header("공격 범위 & 속도")]
+    public float attackRange = 5f;   // 사정거리
+    public float attackRate = 1f;   // 초당 발사 횟수
+
+    [Header("총알 & 총구")]
     public GameObject bulletPrefab;
+    public Transform firePoint;     // 총알 생성 지점(빈 GameObject)
 
-    public int baseDamage = 10;              // 기본 공격 데미지
-    public bool isFireAttack = false;         // 불 공격 여부
-    public float fireBurnDuration = 3f;       // 불 지속시간
-    public int fireBurnDamagePerSecond = 5;   // 불 초당 데미지
+    [Header("데미지")]
+    public int baseDamage = 10;
 
-    private float attackCooldown = 0f;
+    private float nextFireTime = 0f;
+
     void Update()
     {
-        attackCooldown -= Time.deltaTime;
+        // 1) 재장전(쿨다운) 체크
+        if (Time.time < nextFireTime) return;
 
-        GameObject targetEnemy = FindClosestEnemy();
+        // 2) 가장 가까운 적 찾기
+        GameObject target = FindClosestEnemyInRange();
+        if (target == null) return;
 
-        if (targetEnemy != null && attackCooldown <= 0f)
-        {
-            Attack(targetEnemy);
-            attackCooldown = 1f / attackRate;
-        }
+        // 3) 발사
+        Shoot(target);
+        nextFireTime = Time.time + 1f / attackRate;
     }
 
-    GameObject FindClosestEnemy()
+    GameObject FindClosestEnemyInRange()
     {
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        var enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        GameObject best = null;
+        float bestDistSqr = attackRange * attackRange;
 
-        GameObject closest = null;
-        float shortestDistance = Mathf.Infinity;
-
-        foreach (GameObject enemy in enemies)
+        foreach (var e in enemies)
         {
-            float distance = Vector3.Distance(transform.position, enemy.transform.position);
-            if (distance < shortestDistance && distance <= attackRange)
+            float dSqr = (e.transform.position - transform.position).sqrMagnitude;
+            if (dSqr <= bestDistSqr)
             {
-                shortestDistance = distance;
-                closest = enemy;
+                bestDistSqr = dSqr;
+                best = e;
             }
         }
-        return closest;
+        return best;
     }
-    void Attack(GameObject enemy)
-    {
-        if (bulletPrefab != null)
-        {
-            GameObject bulletObj = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
-            Bullet bullet = bulletObj.GetComponent<Bullet>();
-            if (bullet != null)
-            {
-                bullet.SetTarget(enemy.transform);
 
-                bullet.damage = baseDamage;
-                bullet.isFireBullet = isFireAttack;
-                bullet.burnDuration = fireBurnDuration;
-                bullet.burnDamagePerSecond = fireBurnDamagePerSecond;
-            }
+    void Shoot(GameObject enemy)
+    {
+        if (bulletPrefab == null || firePoint == null)
+        {
+            Debug.LogWarning("[TowerAttack] Bullet prefab 또는 firePoint가 할당되지 않음");
+            return;
         }
+
+        // 1) origin & target 높이 맞춤 (XZ 평면)
+        Vector3 origin = firePoint.position;
+        Vector3 targetPos = enemy.transform.position;
+        targetPos.y = origin.y;
+
+        // 2) 방향 계산
+        Vector3 offset = targetPos - origin;
+        Vector3 dir = offset.normalized;
+
+        Debug.Log($"[TowerAttack] Shooting at enemy '{enemy.name}', dir = {dir}");
+
+        // 3) 총알 생성 & 세팅
+        var b = Instantiate(bulletPrefab, origin, Quaternion.identity);
+        var bullet = b.GetComponent<Bullet>();
+        if (bullet == null)
+        {
+            Debug.LogError("[TowerAttack] Bullet 컴포넌트가 없음");
+            Destroy(b);
+            return;
+        }
+
+        // 4) 충돌 무시 (타워 ↔ 총알)
+        var towerCol = GetComponent<Collider>();
+        var bulletCol = b.GetComponent<Collider>();
+        if (towerCol && bulletCol)
+            Physics.IgnoreCollision(bulletCol, towerCol);
+
+        // 5) 기본 데미지 세팅
+        bullet.damage = baseDamage;
+
+        // 6) 발사
+        bullet.Move(dir);
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }
