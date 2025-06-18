@@ -9,7 +9,7 @@ public class SpawnData
     public float space;
 }
 
-public class WaveManager : MonoBehaviour, inGameManager
+public class WaveManager : MonoBehaviour
 {
     public Vector3 spawnPosition = Vector3.zero;
     private const string csvRoot = "Waves/Wave";
@@ -52,14 +52,5 @@ public class WaveManager : MonoBehaviour, inGameManager
 
         list.Sort((a, b) => a.time.CompareTo(b.time));
         return list;
-    }
-    public void initGame()
-    {
-        waveCount = 1;
-    }
-
-    public void savedGame(SaveData save)
-    {
-        waveCount = save.wave;
     }
 }

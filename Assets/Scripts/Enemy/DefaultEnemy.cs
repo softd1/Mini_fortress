@@ -2,44 +2,43 @@ using UnityEngine;
 
 public class DefaultEnemy : MonoBehaviour
 {
+    [SerializeField] private int baseHealth;
+    [SerializeField] private int baseSpeed;
+    [SerializeField] private int baseValue;
+    [SerializeField] private int baseDefense;
+
     private int _health;
-    [SerializeField]
-    private int baseHealth;
-    [SerializeField]
-    private int baseSpeed;
-    [SerializeField]
-    private int baseValue;
-    [SerializeField]
-    private int baseDefense;
-
-
-    private Vector3 targetWayPoint;
+    private EnemyEffectManager effectManager;
     private EnemyManager manager;
+    private Vector3 targetWayPoint;
     private int wayPointIndex;
 
-    private EnemyEffectManager effectManager;
-    private void Start()
+    void Start()
     {
-        effectManager = gameObject.GetComponent<EnemyEffectManager>();
+        _health = baseHealth;
+        effectManager = GetComponent<EnemyEffectManager>();
     }
 
     public void takeDamage(int damage, bool fixedDamage)
     {
         int finalDamage = damage;
-
-        if (!fixedDamage)
+        if (!fixedDamage && effectManager != null)
         {
-            finalDamage = (int)(effectManager.damageMultiplier * damage);
-            finalDamage = damage < baseDefense ? damage / 2 : damage = -baseDefense;
+            finalDamage = damage < baseDefense
+                          ? damage / 2
+                          : Mathf.RoundToInt((damage - baseDefense) * effectManager.damageMultiplier);
         }
-
-
         _health -= finalDamage;
+        Debug.Log($"{name} took {finalDamage}, remaining {_health}");
+
+        if (_health <= 0)
+            Remove();
     }
 
-    public void applyEffect()
+    public void applyEffect(StatusEffect effect)
     {
-
+        if (effectManager != null)
+            effectManager.applyEffect(effect);
     }
 
     public EnemyWayPoint getWaypoint()
@@ -59,7 +58,6 @@ public class DefaultEnemy : MonoBehaviour
     }
     public void setManager(EnemyManager enemyManager)
     {
-        // 만들때 호출
         manager = enemyManager;
         targetWayPoint = manager.getWayPoints(0);
     }
@@ -72,7 +70,17 @@ public class DefaultEnemy : MonoBehaviour
 
     private void Remove()
     {
-        
+        if (GoldManager.Instance != null)
+        {
+            GoldManager.Instance.AddGold(baseValue);
+            Debug.Log($"[Enemy] {name} 처치, 골드 +{baseValue}");
+        }
+        else
+        {
+            Debug.LogWarning("[Enemy] 골드 매니저가 없습니다!");
+        }
+
+        Destroy(gameObject);
     }
 
     void Update()
